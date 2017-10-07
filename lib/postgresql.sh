@@ -207,7 +207,15 @@ postgresql_conf () {
     local shared_buffers="${4}"
     local effective_cache_size="${5}"
     local work_mem="${6}"
-    local backups_dir="${7}"
+    local backups_dir="${7:-}"
+
+    local archive_command
+
+    if [[ -n "${backups_dir}" ]]; then
+        archive_command="test ! -f \"${backups_dir}/pgarchive/%f\" && gzip < \"%p\" > \"${backups_dir}/pgarchive/%f\""
+    else
+        archive_command='true'
+    fi
 
     cat <<EOF
 listen_addresses = '*'
@@ -240,7 +248,7 @@ ssl_key_file = '${ssl_key_path}'
 
 wal_level = hot_standby
 archive_mode = on
-archive_command = 'test ! -f "${backups_dir}/pgarchive/%f" && gzip < "%p" > "${backups_dir}/pgarchive/%f"'
+archive_command = '${archive_command}'
 max_wal_senders = '3'
 EOF
 }
