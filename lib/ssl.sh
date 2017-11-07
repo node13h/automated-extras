@@ -4,6 +4,19 @@
 # Copyright 2017 Sergej Alikov <sergej.alikov@gmail.com>
 
 
+decrypted_rsa_key () {
+    local key_file="${1}"
+    local passphrase="${2}"
+
+    openssl rsa -passin stdin -in "${key_file}" <<< "${passphrase}"
+}
+
+cert_cn () {
+    [[ "$(openssl x509 -noout -subject -in "${1}")" =~ ^subject=CN\ =\ (.*)$ ]]
+
+    printf '%s\n' "${BASH_REMATCH[1]}"
+}
+
 ssl_selfsigned_extfile () {
     local IFS
 
