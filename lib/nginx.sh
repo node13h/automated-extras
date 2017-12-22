@@ -80,12 +80,80 @@ create_https_certificates () {
     fi
 }
 
-certbot_renew_cron () {
+certbot_timer () {
+    cat <<"EOF"
+[Unit]
+Description=Weekly check for Let's Encrypt's certificates renewal
+
+[Timer]
+# The official documentation suggests running certbot two times per day but I
+# find once a week to be reasonable.
+OnCalendar=Sun *-*-* 04:00:00
+# Use this line instead of you prefer running the check daily.
+# OnCalendar=*-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+}
+
+certbot_service () {
     local certbot_home="${1}"
 
     cat <<EOF
-#!/bin/sh
-sudo -u certbot "certbot" renew -q --logs-dir "${certbot_home}/logs" --config-dir "${certbot_home}/conf" --work-dir "${certbot_home}/work" --renew-hook 'systemctl reload nginx'
+[Unit]
+Description=Let's Encrypt certificate renewal
+
+[Service]
+Type=oneshot
+
+User=certbot
+Group=certbot
+UMask=0027
+
+PermissionsStartOnly=yes
+ExecStart=/usr/bin/certbot renew -q --logs-dir $(quoted_for_systemd "${certbot_home}/logs") --config-dir $(quoted_for_systemd "${certbot_home}/conf") --work-dir $(quoted_for_systemd "${certbot_home}/work") --renew-hook 'date --iso=min > $(quoted "${certbot_home}/renewed")'
+ExecStartPost=/usr/bin/systemctl start --no-block certbot-renewed
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=yes
+ProtectHome=yes
+
+CapabilityBoundingSet=
+AmbientCapabilities=
+EOF
+}
+
+certbot_renewed_service () {
+    local certbot_home="${1}"
+
+    cat <<EOF
+[Unit]
+Description=Restart selected daemons when Let's Encrypt certificates are renewed
+ConditionFileNotEmpty=${certbot_home}/renewed
+
+[Service]
+Type=oneshot
+
+User=certbot
+Group=certbot
+UMask=0027
+
+PermissionsStartOnly=yes
+ExecStart=/usr/bin/rm -- $(quoted_for_systemd "${certbot_home}/renewed")
+ExecStartPost=/usr/bin/systemctl restart --no-block nginx
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=yes
+ProtectHome=yes
+
+CapabilityBoundingSet=
+AmbientCapabilities=
 EOF
 }
 
