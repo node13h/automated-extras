@@ -268,11 +268,11 @@ setup_postgresql_backups () {
     local pg_version="${1}"
     local backups_dir="${2}"
 
-    [[ -d /opt/pgba ]] || git clone https://github.com/node13h/pgba.git /opt/pgba
+    [[ -d /opt/pgba ]] || cmd git clone https://github.com/node13h/pgba.git /opt/pgba
 
-    mkdir -p "${backups_dir}/pgarchive"
-    mkdir -p "${backups_dir}/pgbase"
-    chown postgres:postgres "${backups_dir}/pgarchive" "${backups_dir}/pgbase"
+    cmd mkdir -p "${backups_dir}/pgarchive"
+    cmd mkdir -p "${backups_dir}/pgbase"
+    cmd chown postgres:postgres "${backups_dir}/pgarchive" "${backups_dir}/pgbase"
 
     pg_basebackup_crond_main "${pg_version}" "${backups_dir}" | to_file "/etc/cron.d/pg-basebackup-main"
 }
