@@ -58,25 +58,31 @@ create_https_certificates () {
     [[ "${#}" -gt 0 ]] || return 1
 
     local domain
-    local -a domain_args=()
+    local -a args=()
 
     if ! [[ -e "${certbot_home}/conf/live/${1}/fullchain.pem" ]] || is_true "${force_update}"; then
         msg "Creating certificates/keys for ${*}"
 
+        args=('-n'
+              '--agree-tos'
+              '--text'
+              '-m' "${admin_email}"
+              '--logs-dir' "${certbot_home}/logs"
+              '--config-dir' "${certbot_home}/conf"
+              '--work-dir' "${certbot_home}/work"
+              '--webroot'
+              '-w' "${certbot_webroot}"
+             )
+
+        if is_true "${force_update}"; then
+            args+=('--expand')
+        fi
+
         for domain in "${@}"; do
-            domain_args+=('-d' "${domain}")
+            args+=('-d' "${domain}")
         done
 
-        cmd sudo -u certbot certbot certonly \
-             --agree-tos \
-             --text \
-             -m "${admin_email}" \
-             --logs-dir "${certbot_home}/logs" \
-             --config-dir "${certbot_home}/conf" \
-             --work-dir "${certbot_home}/work" \
-             --webroot \
-             -w "${certbot_webroot}" \
-             "${domain_args[@]}"
+        cmd sudo -u certbot certbot certonly "${args[@]}"
     fi
 }
 
