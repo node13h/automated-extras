@@ -1,3 +1,4 @@
 *~
-bdist/*
-sdist/*
+/automated-extras-config.sh
+/bdist/*
+/sdist/*
