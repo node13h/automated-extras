@@ -35,25 +35,27 @@ all: build
 
 clean:
 	rm -f automated-extras-config.sh
+	rm -f lib/automated-extras-config.sh
 	rm -rf bdist sdist
 
 automated-extras-config.sh: automated-extras-config.sh.in VERSION
-	sed -e 's~@LIBDIR@~$(LIBDIR)/automated-extras~g' \
-	    -e 's~@VERSION@~$(VERSION)~g' automated-extras-config.sh.in >automated-extras-config.sh
+	sed -e 's~@LIBDIR@~$(LIBDIR)/automated-extras~g' automated-extras-config.sh.in >automated-extras-config.sh
+	sed -e 's~@VERSION@~$(VERSION)~g' lib/automated-extras-config.sh.in >lib/automated-extras-config.sh
 
 build: automated-extras-config.sh
 
 install: build
-	install -m 0755 -d "$(DESTDIR)$(BINDIR)"
-	install -m 0755 -d "$(DESTDIR)$(LIBDIR)/automated-extras"
-	install -m 0755 -d "$(DESTDIR)$(DOCSDIR)/automated-extras"
-	install -m 0755 automated-extras-config.sh "$(DESTDIR)$(BINDIR)"
-	install -m 0644 lib/*.sh "$(DESTDIR)$(LIBDIR)/automated-extras"
-	install -m 0644 README.* "$(DESTDIR)$(DOCSDIR)/automated-extras"
+	install -m 0755 -d $(DESTDIR)$(BINDIR)
+	install -m 0755 -d $(DESTDIR)$(LIBDIR)/automated-extras
+	install -m 0755 -d $(DESTDIR)$(DOCSDIR)/automated-extras
+	install -m 0755 automated-extras-config.sh $(DESTDIR)$(BINDIR)
+	install -m 0644 lib/*.sh $(DESTDIR)$(LIBDIR)/automated-extras
+	install -m 0644 README.* $(DESTDIR)$(DOCSDIR)/automated-extras
 
 uninstall:
-	rm -rf -- "$(DESTDIR)$(LIBDIR)/automated-extras"
-	rm -rf -- "$(DESTDIR)$(DOCSDIR)/automated-extras"
+	rm -f -- $(DESTDIR)$(BINDIR)/automated-extras-config.sh
+	rm -rf -- $(DESTDIR)$(LIBDIR)/automated-extras
+	rm -rf -- $(DESTDIR)$(DOCSDIR)/automated-extras
 
 release-start:
 	bash release.sh start

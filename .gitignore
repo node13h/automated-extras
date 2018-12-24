@@ -1,5 +1,6 @@
 *~
 /automated-extras-config.sh
+/lib/automated-extras-config.sh
 /bdist/*
 /sdist/*
 /control
