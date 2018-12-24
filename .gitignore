@@ -2,3 +2,4 @@
 /automated-extras-config.sh
 /bdist/*
 /sdist/*
+/control

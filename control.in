@@ -1,0 +1,4 @@
+Package: automated-extras
+Architecture: all
+Description: Extra functions for automated.sh
+Version: @VERSION@
