@@ -1,5 +1,8 @@
+SHELL = bash
+
+PROJECT := automated-extras
+
 VERSION := $(shell cat VERSION)
-RELEASE_BRANCH := master
 
 PREFIX := /usr/local
 BINDIR = $(PREFIX)/bin
@@ -8,17 +11,22 @@ SHAREDIR = $(PREFIX)/share
 DOCSDIR = $(SHAREDIR)/doc
 MANDIR = $(SHAREDIR)/man
 
+SDIST_TARBALL := sdist/$(PROJECT)-$(VERSION).tar.gz
+SDIST_DIR = $(PROJECT)-$(VERSION)
+
 .PHONY: install build clean uninstall release sdist rpm
 
 all:
 	build
 
 clean:
+	rm -f automated-extras-config.sh
 	rm -rf bdist sdist
 
-build:
+automated-config.sh: automated-extras-config.sh.in VERSION
 	sed -e 's~@LIBDIR@~$(LIBDIR)/automated-extras~g' \
 	    -e 's~@VERSION@~$(VERSION)~g' automated-extras-config.sh.in >automated-extras-config.sh
+build: automated-extras-config.sh
 
 install: build
 	install -m 0755 -d "$(DESTDIR)$(BINDIR)"
@@ -29,15 +37,23 @@ install: build
 	install -m 0644 README.* "$(DESTDIR)$(DOCSDIR)/automated-extras"
 
 uninstall:
-	rm -rf "$(DESTDIR)$(LIBDIR)/automated-extras"
-	rm -rf "$(DESTDIR)$(DOCSDIR)/automated-extras"
+	rm -rf -- "$(DESTDIR)$(LIBDIR)/automated-extras"
+	rm -rf -- "$(DESTDIR)$(DOCSDIR)/automated-extras"
 
 release:
 	git tag $(VERSION)
 
-sdist:
+$(SDIST_TARBALL):
 	mkdir -p sdist; \
-	git archive "--prefix=automated-extras-$(VERSION)/" -o "sdist/automated-extras-$(VERSION).tar.gz" "$(VERSION)"
+	tar --transform 's~^~$(SDIST_DIR)/~' \
+	    --exclude .git \
+	    --exclude sdist \
+	    --exclude bdist \
+	    --exclude '*~' \
+	    -czf $(SDIST_TARBALL) \
+	    *
+
+sdist: $(SDIST_TARBALL)
 
 rpm: PREFIX := /usr
 rpm: sdist
