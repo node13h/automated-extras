@@ -48,7 +48,7 @@ is_package_installed () {
             rpm -q "${package}" --nosignature --nodigest >/dev/null
             ;;
         'Debian')
-            /usr/bin/dpkg-query -W "${package}" >/dev/null
+            LANG=C dpkg-query --show --showformat='${Status}\n' "${package}" | grep -F installed >/dev/null
             ;;
         *)
             throw "${FACT_OS_FAMILY} is unsupported"
