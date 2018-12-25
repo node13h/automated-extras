@@ -40,27 +40,61 @@ quoted_for_systemd () {
     printf '%s\n' "${result[*]}"
 }
 
-packages_ensure () {
-    local command="${1}"
-    shift
+is_package_installed () {
+    local package="${1}"
 
-    case "${FACT_OS_FAMILY}-${command}" in
-        'RedHat-present')
-            cmd yum -y install "${@}"
+    case "${FACT_OS_FAMILY}" in
+        'RedHat')
+            rpm -q "${package}" --nosignature --nodigest >/dev/null
             ;;
-        'RedHat-absent')
-            cmd yum -y remove "${@}"
-            ;;
-        'Debian-present')
-            cmd apt-get -y install "${@}"
-            ;;
-        'Debian-absent')
-            cmd apt-get -y remove "${@}"
+        'Debian')
+            /usr/bin/dpkg-query -W "${package}" >/dev/null
             ;;
         *)
-            throw "Command ${command} is unsupported on ${FACT_OS_FAMILY}"
+            throw "${FACT_OS_FAMILY} is unsupported"
             ;;
     esac
+}
+
+packages_ensure () {
+    local desired_state="${1}"
+    shift
+
+    local pkg
+    local -a install_cmd
+    local -a remove_cmd
+
+    case "${FACT_OS_NAME}" in
+        'CentOS'|'RHEL')
+            install_cmd=('yum' '-y' 'install')
+            remove_cmd=('yum' '-y' 'remove')
+            ;;
+        'Fedora')
+            install_cmd=('dnf' '-y' 'install')
+            remove_cmd=('dnf' '-y' 'remove')
+            ;;
+        'Debian'|'Ubuntu')
+            install_cmd=('apt-get' '-y' 'install')
+            remove_cmd=('apt-get' '-y' 'remove')
+            ;;
+        *)
+            throw "${FACT_OS_NAME} is unsupported"
+            ;;
+    esac
+
+    for pkg in "${@}"; do
+        case "${desired_state}" in
+            'present')
+                is_package_installed "${pkg}" || cmd "${install_cmd[@]}" "${pkg}"
+                ;;
+            'absent')
+                ! is_package_installed "${pkg}" || cmd "${remove_cmd[@]}" "${pkg}"
+                ;;
+            *)
+                throw "Unsupported state ${desired_state}"
+                ;;
+        esac
+    done
 }
 
 service_ensure () {
