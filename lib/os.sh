@@ -97,6 +97,16 @@ packages_ensure () {
     done
 }
 
+is_service_running () {
+    local service="${1}"
+
+    if is_true "${FACT_SYSTEMD}"; then
+        systemctl -q is-active "${service}"
+    else
+        LANG=C service "${service}" status | grep -F 'running' >/dev/null
+    fi
+}
+
 service_ensure () {
     local command="${1}"
     local service="${2}"
