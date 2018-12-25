@@ -57,7 +57,7 @@ is_package_installed () {
 }
 
 packages_ensure () {
-    local desired_state="${1}"
+    local state="${1}"
     shift
 
     local pkg
@@ -83,7 +83,7 @@ packages_ensure () {
     esac
 
     for pkg in "${@}"; do
-        case "${desired_state}" in
+        case "${state}" in
             'present')
                 is_package_installed "${pkg}" || cmd "${install_cmd[@]}" "${pkg}"
                 ;;
@@ -91,7 +91,7 @@ packages_ensure () {
                 ! is_package_installed "${pkg}" || cmd "${remove_cmd[@]}" "${pkg}"
                 ;;
             *)
-                throw "Unsupported state ${desired_state}"
+                throw "Unsupported state ${state}"
                 ;;
         esac
     done
