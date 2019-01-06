@@ -73,7 +73,7 @@ packages_ensure () {
             install_cmd=('dnf' '-y' 'install')
             remove_cmd=('dnf' '-y' 'remove')
             ;;
-        'Debian'|'Ubuntu')
+        'Debian'|'Ubuntu'|'Raspbian GNU/Linux')
             install_cmd=('apt-get' '-y' 'install')
             remove_cmd=('apt-get' '-y' 'remove')
             ;;
