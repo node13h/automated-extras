@@ -89,7 +89,7 @@ create_https_certificates () {
 certbot_timer () {
     cat <<"EOF"
 [Unit]
-Description=Weekly check for Let's Encrypt's certificates renewal
+Description=Daily check for Let's Encrypt's certificates renewal
 
 [Timer]
 # Check daily
