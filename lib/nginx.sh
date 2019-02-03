@@ -92,11 +92,8 @@ certbot_timer () {
 Description=Weekly check for Let's Encrypt's certificates renewal
 
 [Timer]
-# The official documentation suggests running certbot two times per day but I
-# find once a week to be reasonable.
-OnCalendar=Sun *-*-* 04:00:00
-# Use this line instead of you prefer running the check daily.
-# OnCalendar=*-*-* 04:00:00
+# Check daily
+OnCalendar=*-*-* 04:00:00
 Persistent=true
 
 [Install]
