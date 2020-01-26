@@ -46,6 +46,8 @@ ensure_ssl_cert_exists () {
     local common_name="${7}"
     shift 7
 
+    [[ "${#}" -gt 0 ]] || throw 'At least one SAN is required'
+
     # The rest of the arguments are subjectAltNames,
     # like DNS:example.com DNS:www.example.com and so on
 
@@ -61,11 +63,7 @@ ensure_ssl_cert_exists () {
 
         cmd openssl req -new -key "${key_path}" -out "${csr_path}" -subj "/CN=${common_name}" -batch
 
-        if [[ "${#}" -gt 0 ]]; then
-            cmd openssl "${sign_args[@]}" -extfile <(ssl_selfsigned_extfile "${@}")
-        else
-            cmd openssl "${sign_args[@]}"
-        fi
+        cmd openssl "${sign_args[@]}" -extfile <(ssl_selfsigned_extfile "${@}")
 
         cmd chown "${key_owner}:${key_group}" "${key_path}"
         cmd chmod 0400 "${key_path}"
