@@ -28,6 +28,10 @@ homedir () {
     getent passwd "${username}" | cut -d ':' -f 6
 }
 
+reload_systemd_daemon () {
+    cmd systemctl daemon-reload
+}
+
 quoted_for_systemd () {
     local arg
     local -a result=()
