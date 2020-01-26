@@ -34,7 +34,7 @@ quoted_for_systemd () {
 
     for arg in "${@}"; do
         # shellcheck disable=SC1003
-        result+=("\"$(translated "${arg}" '\' '\\' '"' '\"')\"")
+        result+=("\"$(translated "${arg}" '\' '\\' '"' '\"' '%' '%%' '$' '$$')\"")
     done
 
     printf '%s\n' "${result[*]}"
