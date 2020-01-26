@@ -23,6 +23,7 @@ ssl_selfsigned_extfile () {
     cat <<EOF
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer
+basicConstraints=CA:true
 EOF
     IFS=','
     printf 'subjectAltName=%s\n' "${*}"
