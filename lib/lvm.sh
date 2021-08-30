@@ -143,27 +143,27 @@ lvm_lv_exists () {
 setup_lv () {
     deprecated_with_alternatives 'lvm_lv_exists()' 'lvcreate' 'mkfs' 'systemd_set_up_mount()'
 
-    declare vg="${1}"
-    declare lv="${2}"
-    declare mountpoint="${3}"
-    declare size="${4}"
+    declare vg="$1"
+    declare lv="$2"
+    declare mountpoint="$3"
+    declare size="$4"
     declare filesystem="${5:-xfs}"
 
     declare block_dev="/dev/mapper/${vg}-${lv}"
 
-    if ! [[ -b "${block_dev}" ]]; then
+    if ! [[ -b "$block_dev" ]]; then
 
         log_info "Setting up ${mountpoint} block device and mount point"
 
-        lvcreate -n "${lv}" -L "${size}" "${vg}"
-        mkfs -t "${filesystem}" "${block_dev}"
+        lvcreate -n "$lv" -L "$size" "$vg"
+        mkfs -t "$filesystem" "$block_dev"
 
         if ! grep -q "^${block_dev}" /etc/fstab; then
-            printf '%s\t%s\t%s\tdefaults,relatime\t0 0\n' "${block_dev}" "${mountpoint}" "${filesystem}" >>/etc/fstab
+            printf '%s\t%s\t%s\tdefaults,relatime\t0 0\n' "$block_dev" "$mountpoint" "$filesystem" >>/etc/fstab
         fi
 
-        mkdir -p "${mountpoint}"
+        mkdir -p "$mountpoint"
 
-        mount "${mountpoint}"
+        mount "$mountpoint"
     fi
 }
