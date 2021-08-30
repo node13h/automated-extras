@@ -1,161 +1,194 @@
 #!/usr/bin/env bash
 
 # MIT license
-# Copyright 2017 Sergej Alikov <sergej.alikov@gmail.com>
+# Copyright 2017-2021 Sergej Alikov <sergej.alikov@gmail.com>
 
 
+os_family () {
+    if [[ -f /etc/redhat-release ]]; then
+        printf 'redhat\n'
+        return 0
+    elif [[ -f /etc/debian_version ]]; then
+        printf 'debian\n'
+        return 0
+    fi
+
+    # TODO: Perhaps return 1 (see os_is_package_installed())?
+}
+
+
+os_id () (
+    source /etc/os-release
+
+    printf '%s\n' "$ID"
+)
+
+
+os_version_id () (
+    source /etc/os-release
+
+    printf '%s\n' "$VERSION_ID"
+)
+
+
+# FIXME: DEPRECATED
 enable_epel () {
+    deprecated_function
+
+    declare os_version_id
+    os_version_id=$(os_version_id)
+
     if ! [[ -e /etc/yum.repos.d/epel.repo ]]; then
-        cmd yum localinstall -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${FACT_OS_VERSION}.noarch.rpm"
+        yum localinstall -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${os_version_id}.noarch.rpm"
     fi
 }
 
-user_exists () {
-    local username="${1}"
 
-    getent passwd "${username}" >/dev/null
+os_user_exists () {
+    declare username="$1"
+
+    getent passwd "$username" >/dev/null
 }
 
-group_exists () {
-    local groupname="${1}"
 
-    getent group "${groupname}" >/dev/null
+os_group_exists () {
+    declare groupname="$1"
+
+    getent group "$groupname" >/dev/null
 }
 
-homedir () {
-    local username="${1}"
 
-    getent passwd "${username}" | cut -d ':' -f 6
+os_homedir () {
+    declare username="$1"
+
+    getent passwd "$username" | cut -d ':' -f 6
 }
 
-reload_systemd_daemon () {
-    cmd systemctl daemon-reload
-}
 
-quoted_for_systemd () {
-    local arg
-    local -a result=()
+os_is_package_installed () {
+    declare package="$1"
 
-    for arg in "${@}"; do
-        # shellcheck disable=SC1003
-        result+=("\"$(translated "${arg}" '\' '\\' '"' '\"' '%' '%%' '$' '$$')\"")
-    done
+    declare os_family
+    os_family=$(os_family)
 
-    printf '%s\n' "${result[*]}"
-}
-
-is_package_installed () {
-    local package="${1}"
-
-    case "${FACT_OS_FAMILY}" in
-        'RedHat')
-            rpm -q "${package}" --nosignature --nodigest >/dev/null
+    case "$os_family" in
+        'redhat')
+            rpm -q "$package" --nosignature --nodigest >/dev/null
             ;;
-        'Debian')
-            LANG=C dpkg-query --show --showformat='${Status}\n' "${package}" | grep -F installed >/dev/null
+        'debian')
+            LANG=C dpkg-query --show --showformat='${Status}\n' "$package" | grep -F installed >/dev/null
             ;;
         *)
-            throw "${FACT_OS_FAMILY} is unsupported"
+            throw "$os_family is unsupported"
             ;;
     esac
 }
 
-packages_ensure () {
-    local state="${1}"
+
+os_packages_ensure () {
+    declare state="$1"
     shift
 
-    local pkg
-    local -a install_cmd
-    local -a remove_cmd
+    declare pkg
+    declare -a install_cmd
+    declare -a remove_cmd
 
-    case "${FACT_OS_NAME}" in
-        'CentOS'|'RHEL')
+    declare os_id
+    os_id=$(os_id)
+
+    case "$os_id" in
+        'centos'|'rhel')
             install_cmd=('yum' '-y' 'install')
             remove_cmd=('yum' '-y' 'remove')
             ;;
-        'Fedora')
+        'fedora')
             install_cmd=('dnf' '-y' 'install')
             remove_cmd=('dnf' '-y' 'remove')
             ;;
-        'Debian'|'Ubuntu'|'Raspbian GNU/Linux')
+        'debian'|'ubuntu'|'raspbian')
             install_cmd=('apt-get' '-y' 'install')
             remove_cmd=('apt-get' '-y' 'remove')
             ;;
         *)
-            throw "${FACT_OS_NAME} is unsupported"
+            throw "${os_id} is unsupported"
             ;;
     esac
 
-    for pkg in "${@}"; do
-        case "${state}" in
+    for pkg in "$@"; do
+        case "$state" in
             'present')
-                is_package_installed "${pkg}" || cmd "${install_cmd[@]}" "${pkg}"
+                os_is_package_installed "$pkg" || "${install_cmd[@]}" "$pkg"
                 ;;
             'absent')
-                ! is_package_installed "${pkg}" || cmd "${remove_cmd[@]}" "${pkg}"
+                ! os_is_package_installed "$pkg" || "${remove_cmd[@]}" "$pkg"
                 ;;
             *)
-                throw "Unsupported state ${state}"
+                throw "Unsupported state $state"
                 ;;
         esac
     done
 }
 
-is_service_running () {
-    local service="${1}"
 
-    if is_true "${FACT_SYSTEMD}"; then
-        systemctl -q is-active "${service}"
+os_is_service_running () {
+    declare service="$1"
+
+    if systemd_is_active; then
+        systemctl -q is-active "$service"
     else
-        LANG=C service "${service}" status | grep -F 'running' >/dev/null
+        LANG=C service "$service" status | grep -F 'running' >/dev/null
     fi
 }
 
-service_ensure () {
-    local state="${1}"
-    local service="${2}"
 
-    local -a start_cmd
-    local -a stop_cmd
-    local -a enable_cmd
-    local -a disable_cmd
+os_service_ensure () {
+    declare state="$1"
+    declare service="$2"
 
-    if is_true "${FACT_SYSTEMD}"; then
-        start_cmd=('systemctl' 'start' "${service}")
-        stop_cmd=('systemctl' 'stop' "${service}")
-        enable_cmd=('systemctl' 'enable' "${service}")
-        disable_cmd=('systemctl' 'disable' "${service}")
+    declare -a start_cmd
+    declare -a stop_cmd
+    declare -a enable_cmd
+    declare -a disable_cmd
+
+    declare os_family
+    os_family=$(os_family)
+
+    if systemd_is_active; then
+        start_cmd=('systemctl' 'start' "$service")
+        stop_cmd=('systemctl' 'stop' "$service")
+        enable_cmd=('systemctl' 'enable' "$service")
+        disable_cmd=('systemctl' 'disable' "$service")
     else
-        start_cmd=('service' "${service}" 'start')
-        stop_cmd=('service' "${service}" 'stop')
+        start_cmd=('service' "$service" 'start')
+        stop_cmd=('service' "$service" 'stop')
 
-        case "${FACT_OS_FAMILY}" in
-            'RedHat')
-                enable_cmd=('chkconfig' "${service}" 'on')
-                disable_cmd=('chkconfig' "${service}" 'off')
+        case "$os_family" in
+            'redhat')
+                enable_cmd=('chkconfig' "$service" 'on')
+                disable_cmd=('chkconfig' "$service" 'off')
                 ;;
-            'Debian')
-                enable_cmd=('update-rc.d' "${service}" 'enable')
-                disable_cmd=('update-rc.d' "${service}" 'disable')
+            'debian')
+                enable_cmd=('update-rc.d' "$service" 'enable')
+                disable_cmd=('update-rc.d' "$service" 'disable')
                 ;;
             *)
-                throw "${FACT_OS_FAMILY} is unsupported"
+                throw "${os_family} is unsupported"
                 ;;
         esac
     fi
 
-    case "${state}" in
+    case "$state" in
         'enabled')
-            cmd "${enable_cmd[@]}"
+            "${enable_cmd[@]}"
             ;;
         'disabled')
-            cmd "${disable_cmd[@]}"
+            "${disable_cmd[@]}"
             ;;
         'started')
-            is_service_running "${service}" || cmd "${start_cmd[@]}"
+            os_is_service_running "$service" || "${start_cmd[@]}"
             ;;
         'stopped')
-            ! is_service_running "${service}" || cmd "${stop_cmd[@]}"
+            ! os_is_service_running "$service" || "${stop_cmd[@]}"
             ;;
     esac
 }
