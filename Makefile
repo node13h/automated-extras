@@ -39,10 +39,12 @@ clean:
 	rm -rf bdist sdist
 
 automated-extras-config.sh: automated-extras-config.sh.in VERSION
-	sed -e 's~@LIBDIR@~$(LIBDIR)/automated-extras~g' automated-extras-config.sh.in >automated-extras-config.sh
-	sed -e 's~@VERSION@~$(VERSION)~g' lib/automated-extras-config.sh.in >lib/automated-extras-config.sh
+	sed -e 's~@LIBDIR@~$(LIBDIR)/automated-extras~g' -e 's~@VERSION@~$(VERSION)~g' automated-extras-config.sh.in >automated-extras-config.sh
 
-build: automated-extras-config.sh
+lib/automated-extras.sh: lib/automated-extras.sh.in
+	sed -e 's~@VERSION@~$(VERSION)~g' lib/automated-extras.sh.in >lib/automated-extras.sh
+
+build: automated-extras-config.sh lib/automated-extras.sh
 
 install: build
 	install -m 0755 -d $(DESTDIR)$(BINDIR)

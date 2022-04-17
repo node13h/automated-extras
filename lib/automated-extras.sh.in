@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# MIT license
+# Copyright 2017-2022 Sergej Alikov <sergej.alikov@gmail.com>
+
+supported_automated_versions 0.3
+
+supported_automated_extras_versions () {
+    if ! semver_matches_one_of "@VERSION@" "$@"; then
+        throw "Unsupported version @VERSION@ of Automated Extras detected. Supported versions are: $(joined ', ' "$@")"
+    fi
+}
