@@ -76,7 +76,8 @@ os_is_package_installed () {
             rpm -q "$package" --nosignature --nodigest >/dev/null
             ;;
         'debian')
-            LANG=C dpkg-query --show --showformat='${Status}\n' "$package" | grep -F installed >/dev/null
+            LANG=C dpkg-query -W --showformat='${db:Status-Status}\n' "$package" \
+                | grep -i -x -F installed >/dev/null
             ;;
         *)
             throw "$os_family is unsupported"
