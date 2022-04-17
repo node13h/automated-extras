@@ -18,6 +18,72 @@ lvm_install_packages () {
 }
 
 
+# Set up an encrypted LVM logical volume.
+# Do nothing if the volume already exists.
+lvm_create_encrypted_lv () {
+    declare vg="$1"
+    declare name="$2"
+    declare size="$3"
+    declare secret="$4"
+
+    declare -r dev="/dev/mapper/${name}"
+
+    if lvm lvs "${vg}/${name}" &>/dev/null; then
+        throw "Encrypted LV ${vg}/${name} has already been set up"
+    else
+        if [[ -e "$dev" ]]; then
+            log_error "Device name ${dev} is already taken"
+            return 1
+        fi
+
+        if cryptsetup status "$name" >/dev/null; then
+            log_error "Some other encrypted volume with the same name (${name}) is already open"
+            return 1
+        fi
+
+        log_info "Setting up secure LV ${vg}/${name}"
+
+        lvcreate -L "$size" -n "$name" "$vg"
+
+        cryptsetup \
+            open \
+            --type plain \
+            --key-file <(head -c 100 </dev/urandom) \
+            "/dev/${vg}/${name}" "$name"
+
+        dd if=/dev/zero bs=256M of="$dev" || true
+
+        sync
+
+        cryptsetup close "$name"
+
+        cryptsetup \
+            luksFormat \
+            --type luks \
+            "/dev/${vg}/${name}" <(printf '%s' "$secret")
+    fi
+}
+
+
+# Open the existing encrypted LV.
+lvm_open_encrypted_lv () {
+    declare vg="$1"
+    declare name="$2"
+    declare secret="$3"
+
+    if cryptsetup status "$name" >/dev/null; then
+        log_debug "Encrypted volume ${name} is already open"
+    else
+        cryptsetup \
+            open \
+            --type luks \
+            --key-file <(printf '%s' "$secret") \
+            "/dev/${vg}/${name}" "$name"
+    fi
+}
+
+
+
 # Set up an encrypted LVM physical volume with a volume group on it,
 # using a loop-mounted file as the device.
 #
@@ -65,6 +131,9 @@ lvm_set_up_encrypted_volume_file () {
             "$loop_dev" "$name"
 
         dd if=/dev/zero bs=256M of="$dev" || true
+
+        sync
+
         cryptsetup close "$name"
 
         cryptsetup \
