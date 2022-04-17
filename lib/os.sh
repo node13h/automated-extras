@@ -102,7 +102,7 @@ os_packages_ensure () {
             install_cmd=('yum' '-y' 'install')
             remove_cmd=('yum' '-y' 'remove')
             ;;
-        'fedora')
+        'fedora'|'rocky')
             install_cmd=('dnf' '-y' 'install')
             remove_cmd=('dnf' '-y' 'remove')
             ;;
