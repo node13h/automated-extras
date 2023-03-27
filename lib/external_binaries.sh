@@ -23,7 +23,7 @@ external_binaries_download () {
 
     declare filename path checksum url
     for filename in "$@"; do
-        path="${dest_dir}/${filename}"
+        path="${dest_dir%/}/${filename}"
         checksum="${EXTERNAL_BINARIES_CHECKSUMS[$filename]}"
         url="${EXTERNAL_BINARIES_URLS[$filename]}"
 
