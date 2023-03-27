@@ -98,14 +98,34 @@ cfssl_initca () {
 ## )
 ## @endcode
 cfssl_gencert () {
-    declare cn="$1"
-    declare ca_cert="$2"
-    declare ca_cert_key="$3"
-    declare profile="$4"
-    declare -i key_size="$5"
-    declare expiry="$6"
+    declare -a positional_args=()
 
-    shift 6
+    declare organization
+
+    while [[ "$#" -gt 0 ]]; do
+        case "$1" in
+            --organization)
+                organization="$2"
+                shift
+                ;;
+            --)
+                shift
+                positional_args+=("$@")
+                break
+                ;;
+            *)
+                positional_args+=("$1")
+                ;;
+        esac
+        shift
+    done
+
+    declare cn="${positional_args[0]}"
+    declare ca_cert="${positional_args[1]}"
+    declare ca_cert_key="${positional_args[2]}"
+    declare profile="${positional_args[3]}"
+    declare -i key_size="${positional_args[4]}"
+    declare expiry="${positional_args[5]}"
 
     declare -a usages=()
 
@@ -124,11 +144,15 @@ cfssl_gencert () {
             ;;
     esac
 
+    # shellcheck disable=SC2016
     jq -ne \
        --arg cn "$cn" \
        --argjson key_size "$key_size" \
        '{hosts: $ARGS.positional, key: {algo: "rsa", size: $key_size}, CN: $cn}' \
-       --args "$@" \
+       --args "${positional_args[@]:6}" \
+        | jq -e \
+             --arg o "${organization:-}" \
+             'if ($o|length > 0) then . + {"names": [{"O": $o}]} else . end' \
         | cfssl gencert \
                 -ca="$ca_cert" \
                 -ca-key="$ca_cert_key" \
